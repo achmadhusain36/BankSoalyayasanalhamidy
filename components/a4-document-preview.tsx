@@ -473,7 +473,7 @@ export function A4DocumentPreview({
         {viewMode !== "kisi-kisi" && viewMode !== "ljk" && (
           <>
             {/* Kop Surat Header */}
-            <KopSurat config={currentExam.kopConfig} />
+            <KopSurat config={currentExam.kopConfig} institution={currentExam.institution} />
 
             {/* Document Title Header */}
             <div className="text-center my-3 font-times">
@@ -708,7 +708,7 @@ export function A4DocumentPreview({
         {/* MODE: LEMBAR JAWABAN KOMPUTER (LJK) */}
         {viewMode === "ljk" && (
           <div className="space-y-4 font-times">
-            <KopSurat config={currentExam.kopConfig} />
+            <KopSurat config={currentExam.kopConfig} institution={currentExam.institution} />
 
             {/* LJK Document Header */}
             <div className="text-center my-3 border-b-2 border-slate-900 pb-2">
@@ -848,7 +848,7 @@ export function A4DocumentPreview({
         {/* MODE 3: KISI-KISI SOAL MATRIX TABLE */}
         {viewMode === "kisi-kisi" && (
           <div className="space-y-4">
-            <KopSurat config={currentExam.kopConfig} />
+            <KopSurat config={currentExam.kopConfig} institution={currentExam.institution} />
 
             <div className="text-center my-3">
               <h2 className="text-sm sm:text-base font-bold text-slate-900 uppercase">

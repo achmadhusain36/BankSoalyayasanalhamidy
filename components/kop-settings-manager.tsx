@@ -81,11 +81,11 @@ export function KopSettingsManager({
     const reader = new FileReader();
     reader.onload = (event) => {
       const dataUrl = event.target?.result as string;
-      if (field === "logoLeft") setKopState({ ...kopState, logoLeftUrl: dataUrl });
-      if (field === "logoRight") setKopState({ ...kopState, logoRightUrl: dataUrl });
-      if (field === "fullKop") setKopState({ ...kopState, customFullKopUrl: dataUrl });
-      if (field === "principalSig") setSigState({ ...sigState, principalSignatureUrl: dataUrl });
-      if (field === "teacherSig") setSigState({ ...sigState, teacherSignatureUrl: dataUrl });
+      if (field === "logoLeft") setKopState((prev) => ({ ...prev, logoLeftUrl: dataUrl }));
+      if (field === "logoRight") setKopState((prev) => ({ ...prev, logoRightUrl: dataUrl }));
+      if (field === "fullKop") setKopState((prev) => ({ ...prev, customFullKopUrl: dataUrl, useCustomFullKop: true }));
+      if (field === "principalSig") setSigState((prev) => ({ ...prev, principalSignatureUrl: dataUrl }));
+      if (field === "teacherSig") setSigState((prev) => ({ ...prev, teacherSignatureUrl: dataUrl }));
     };
     reader.readAsDataURL(file);
   };
