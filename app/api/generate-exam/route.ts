@@ -205,50 +205,85 @@ Keluarkan hasilnya dalam format JSON yang valid dan lengkap sesuai struktur sche
       },
     });
 
-    let rawText = "";
-    if (typeof response === "string") {
-      rawText = response;
-    } else if (response?.text) {
-      rawText = response.text;
-    } else if ((response as any)?.output?.[0]?.content) {
-      const content = (response as any).output[0].content;
-      rawText = Array.isArray(content)
-        ? content.map((c: any) => c.text || c).join("")
-        : (content.text || "");
-    }
+    // Helper: try to extract textual JSON output from several SDK shapes.
+    const extractTextFromResponse = (res: any): string | null => {
+      try {
+        if (!res) return null;
+        if (typeof res === "string") return res;
+        if (typeof res.text === "string" && res.text.trim().length > 0) return res.text;
+        // Some SDK shapes: outputs[].content as array of pieces {type,text}
+        if (Array.isArray(res.output?.[0]?.content)) {
+          return res.output[0].content.map((c: any) => String(c?.text ?? c ?? "")).join("");
+        }
+        // Another possible shape: outputs[].content is object with .text
+        if (res.output?.[0]?.content?.text) return String(res.output[0].content.text);
+        // candidates or responses array
+        if (Array.isArray(res.candidates) && res.candidates[0]?.text) return String(res.candidates[0].text);
+        if (Array.isArray(res.responses) && res.responses[0]?.text) return String(res.responses[0].text);
+        return null;
+      } catch (e) {
+        console.error("extractTextFromResponse error:", e);
+        return null;
+      }
+    };
 
+    const rawText = extractTextFromResponse(response);
     if (!rawText) {
+      console.error("Empty/unsupported Gemini response shape:", JSON.stringify(response, null, 2).slice(0, 2000));
       return NextResponse.json(
-        { error: "Gagal menerima respons teks dari layanan AI Gemini." },
-        { status: 500 }
+        { error: "Gagal menerima respons teks dari layanan AI Gemini (format tidak dikenali)." },
+        { status: 502 }
       );
     }
 
-    // Strip markdown code fences if present
-    const cleanedText = rawText
+    // Strip markdown code fences if present and trim excessively long output for parsing
+    let cleanedText = String(rawText)
       .replace(/^```json\s*/i, "")
       .replace(/^```\s*/i, "")
-      .replace(/\s*```$/, "")
+      .replace(/\s*```$/i, "")
       .trim();
 
-    let data;
+    // Defensive: if the AI returns huge payloads, truncate for parse attempts (but keep reasonable size)
+    const MAX_PARSE_CHARS = 200000; // adjust if needed
+    if (cleanedText.length > MAX_PARSE_CHARS) {
+      console.warn("Gemini response too large — truncating to", MAX_PARSE_CHARS, "chars before parse");
+      cleanedText = cleanedText.slice(0, MAX_PARSE_CHARS);
+    }
+
+    // Try to parse JSON with robust errors
+    let data: any;
     try {
       data = JSON.parse(cleanedText);
     } catch (parseErr) {
-      console.error("Gagal melakukan parse JSON dari Gemini response:", parseErr, "Raw Text:", cleanedText.slice(0, 300));
+      console.error("Failed to parse Gemini JSON response:", parseErr);
+      // Provide helpful debugging hint in the server log but a user-friendly message to client
+      console.debug("Gemini raw snippet:", cleanedText.slice(0, 1000));
       return NextResponse.json(
-        { error: "Format jawaban dari AI Gemini tidak dapat diparse sebagai JSON valid. Silakan coba lagi." },
-        { status: 500 }
+        { error: "Format jawaban dari AI Gemini tidak dapat diparse sebagai JSON valid. Silakan coba lagi atau ubah parameter." },
+        { status: 502 }
       );
     }
 
+    // Basic schema validation (lightweight)
     if (!data || typeof data !== "object" || !Array.isArray(data.questions)) {
+      console.error("Gemini returned object but questions missing or invalid. Sample keys:", Object.keys(data || {}));
       return NextResponse.json(
-        { error: "Dokumen soal yang dihasilkan tidak memenuhi struktur data yang valid." },
-        { status: 500 }
+        { error: "Dokumen soal yang dihasilkan tidak memenuhi struktur data yang valid (questions missing)." },
+        { status: 502 }
       );
     }
 
+    // Validate items inside questions minimally
+    const invalidItem = data.questions.find((q: any) => !q || typeof q.questionText !== "string" || typeof q.answerKey !== "string");
+    if (invalidItem) {
+      console.error("Found invalid question item from Gemini:", JSON.stringify(invalidItem).slice(0, 500));
+      return NextResponse.json(
+        { error: "Beberapa entri soal yang dihasilkan tidak lengkap (questionText/answerKey). Coba ulangi dengan parameter yang lain." },
+        { status: 502 }
+      );
+    }
+
+    // Success: return structured data
     return NextResponse.json(data);
   } catch (error: any) {
     console.error("Error in generate-exam API:", error?.message || error);
