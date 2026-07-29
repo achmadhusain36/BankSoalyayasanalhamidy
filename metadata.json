@@ -1,0 +1,6 @@
+{
+  "name": "Pembuat Soal Al-Hamidy AI - Pringsewu",
+  "description": "Aplikasi Pembuat Soal Otomatis Kurikulum Merdeka - YAYASAN ALHAMIDY PRINGSEWU | SMP Qur'an Al-Hamidy & SMA Plus Al-Hamidy Pringsewu-Lampung | Didukung AI Gemini Server-Side dibuat oleh Achmad Husain",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
