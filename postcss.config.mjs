@@ -1,8 +1,8 @@
 /** @type {import('postcss-load-config').Config} */
 const config = {
   plugins: {
-    // Use the standard plugin key 'tailwindcss' — '@tailwindcss/postcss' is not the plugin entry
-    tailwindcss: {},
+    // Use '@tailwindcss/postcss' as required for Tailwind v4 PostCSS integration
+    '@tailwindcss/postcss': {},
     autoprefixer: {},
   },
 };
