@@ -420,6 +420,25 @@ export async function exportToDocx(exam: ExamDocument, versionLabel: string = "P
 
   const blob = await Packer.toBlob(doc);
   const cleanTitle = exam.title.replace(/[^a-zA-Z0-9\s-]/g, "").replace(/\s+/g, "_");
-  const { saveAs } = await import("file-saver");
-  saveAs(blob, `${cleanTitle}_${versionLabel.replace(/\s+/g, "_")}.docx`);
+  const fileName = `${cleanTitle}_${versionLabel.replace(/\s+/g, "_")}.docx`;
+
+  try {
+    const fileSaver = await import("file-saver");
+    const saveAsFn = fileSaver.saveAs || (fileSaver as any).default?.saveAs || (fileSaver as any).default;
+    if (typeof saveAsFn === "function") {
+      saveAsFn(blob, fileName);
+      return;
+    }
+  } catch {
+    // Fallback to native browser download if dynamic import fails
+  }
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }

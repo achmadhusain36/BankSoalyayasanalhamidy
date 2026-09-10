@@ -107,7 +107,7 @@ Keluarkan hasilnya dalam format JSON yang valid dan lengkap sesuai struktur sche
 `;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.6-flash",
+      model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
       contents: prompt,
       config: {
         responseMimeType: "application/json",
@@ -211,7 +211,15 @@ Keluarkan hasilnya dalam format JSON yang valid dan lengkap sesuai struktur sche
         if (!res) return null;
         if (typeof res === "string") return res;
         if (typeof res.text === "string" && res.text.trim().length > 0) return res.text;
-        // Some SDK shapes: outputs[].content as array of pieces {type,text}
+        if (typeof res.text === "function") {
+          const t = res.text();
+          if (typeof t === "string" && t.trim().length > 0) return t;
+        }
+        // Candidates with content parts
+        if (Array.isArray(res.candidates) && res.candidates[0]?.content?.parts) {
+          const partsText = res.candidates[0].content.parts.map((p: any) => p?.text || "").join("");
+          if (partsText.trim().length > 0) return partsText;
+        }
         if (Array.isArray(res.output?.[0]?.content)) {
           return res.output[0].content.map((c: any) => String(c?.text ?? c ?? "")).join("");
         }
